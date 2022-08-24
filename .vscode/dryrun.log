@@ -1,0 +1,6 @@
+make.exe --dry-run --always-make --keep-going --print-directory
+make: Entering directory 'c:/Users/ACER/Projects/GoLang/learn-goroutines'
+make: Leaving directory 'c:/Users/ACER/Projects/GoLang/learn-goroutines'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+
