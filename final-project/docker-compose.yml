@@ -10,8 +10,9 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: root
       POSTGRES_DB: concurrency
+      PGDATA: /var/lib/postgresql/data/db-data/
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data/
 

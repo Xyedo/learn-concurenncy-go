@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/alexedwards/scs/redisstore"
@@ -15,6 +17,8 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
+const webPort = 80
+
 func main() {
 
 	db := initDB()
@@ -22,8 +26,33 @@ func main() {
 
 	session := initSession()
 
-}
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
+	wg := sync.WaitGroup{}
+
+	app := Config{
+		Session:  session,
+		DB:       db,
+		Wait:     &wg,
+		InfoLog:  infoLog,
+		ErrorLog: errorLog,
+	}
+
+	app.serve()
+
+}
+func (app *Config) serve() {
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", webPort),
+		Handler: app.routes(),
+	}
+	app.InfoLog.Println("Starting web server...")
+	err := srv.ListenAndServe()
+	if err != nil {
+		log.Panic(err)
+	}
+}
 func initSession() *scs.SessionManager {
 	session := scs.New()
 	session.Store = redisstore.New(initRedis())
