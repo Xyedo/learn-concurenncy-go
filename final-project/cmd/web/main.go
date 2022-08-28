@@ -2,11 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"encoding/gob"
+	"final-project/data"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/alexedwards/scs/redisstore"
@@ -37,8 +41,11 @@ func main() {
 		Wait:     &wg,
 		InfoLog:  infoLog,
 		ErrorLog: errorLog,
+		Models:   data.New(db),
 	}
-
+	app.InfoLog.Println(os.Getenv("DSN"))
+	app.InfoLog.Println(os.Getenv("REDIS"))
+	go app.listenForShutdown()
 	app.serve()
 
 }
@@ -54,6 +61,7 @@ func (app *Config) serve() {
 	}
 }
 func initSession() *scs.SessionManager {
+	gob.Register(data.User{})
 	session := scs.New()
 	session.Store = redisstore.New(initRedis())
 	session.Lifetime = 24 * time.Hour
@@ -66,7 +74,7 @@ func initRedis() *redis.Pool {
 	return &redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", os.Getenv("REDIS"))
+			return redis.Dial("redis", os.Getenv("REDIS"))
 		},
 	}
 
@@ -113,4 +121,20 @@ func openDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func (app *Config) listenForShutdown() {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	app.shutdown()
+	os.Exit(0)
+}
+
+func (app *Config) shutdown() {
+	app.InfoLog.Println("would run cleanup tasks...")
+	app.Wait.Wait()
+
+	app.InfoLog.Println("closing channels and shutting down app")
+
 }
