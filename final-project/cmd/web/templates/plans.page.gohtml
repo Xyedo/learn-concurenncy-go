@@ -45,10 +45,10 @@
           title:"Subscribe",
           html:`Are you sure you want to subscribe to the ${plan} ?`,
           showCancelButton:true,
-          confirmBUttonText: "Subscribe", 
+          confirmButtonText: "Subscribe", 
         }).then(result => {
           if (result.isConfirmed) {
-            window.location.href = `/subscribe?id=${x}`
+            window.location.href = `/members/subscribe?id=${x}`
           }
         })
       }

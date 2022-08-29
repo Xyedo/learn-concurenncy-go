@@ -27,14 +27,15 @@ type Mail struct {
 }
 
 type Message struct {
-	From        string
-	FromName    string
-	To          string
-	Subject     string
-	Attachments []string
-	Data        any
-	DataMap     map[string]any
-	Template    string
+	From          string
+	FromName      string
+	To            string
+	Subject       string
+	Attachments   []string
+	AttachmentMap map[string]string
+	Data          any
+	DataMap       map[string]any
+	Template      string
 }
 
 func (m *Mail) sendMail(msg Message, errorChan chan<- error) {
@@ -51,10 +52,16 @@ func (m *Mail) sendMail(msg Message, errorChan chan<- error) {
 	if msg.FromName == "" {
 		msg.FromName = m.FromName
 	}
-	data := map[string]any{
-		"message": msg.Data,
+	if msg.AttachmentMap == nil {
+		msg.AttachmentMap = make(map[string]string)
 	}
-	msg.DataMap = data
+	// data := map[string]any{
+	// 	"message": msg.Data,
+	// }
+	if len(msg.DataMap) == 0 {
+		msg.DataMap = make(map[string]any)
+	}
+	msg.DataMap["message"] = msg.Data
 
 	formattedMessage, err := m.buildHTMLMessage(msg)
 	if err != nil {
@@ -91,6 +98,11 @@ func (m *Mail) sendMail(msg Message, errorChan chan<- error) {
 	if len(msg.Attachments) > 0 {
 		for _, v := range msg.Attachments {
 			email.AddAttachment(v)
+		}
+	}
+	if len(msg.AttachmentMap) > 0 {
+		for k, v := range msg.AttachmentMap {
+			email.AddAttachment(v, k)
 		}
 	}
 	err = email.Send(smtpClient)
