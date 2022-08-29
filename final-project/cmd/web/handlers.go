@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 )
 
 func (app *Config) HomePage(w http.ResponseWriter, r *http.Request) {
@@ -164,4 +165,21 @@ func (app *Config) ChooseSubscription(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, "plans.page.gohtml", &TemplateData{
 		Data: dataMap,
 	})
+}
+
+func (app *Config) SubscribeToPlan(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		app.ErrorLog.Println(err)
+		return
+	}
+	plan, err := app.Models.Plan.GetOne(id)
+	if err != nil {
+		app.Session.Put(r.Context(), "error", "cannot get the plans")
+		http.Redirect(w, r, "/plans", http.StatusSeeOther)
+		return
+	}
+	user, ok := app.Session.Get(r.Context(), "user").(data.User)
+
 }
