@@ -24,6 +24,7 @@ services:
     restart: always
     volumes:
       - ./db-data/redis/:/data
+    command: redis-server --save
 
   #  start mailhog
   mailhog:

@@ -43,10 +43,26 @@ func main() {
 		ErrorLog: errorLog,
 		Models:   data.New(db),
 	}
-	app.InfoLog.Println(os.Getenv("DSN"))
-	app.InfoLog.Println(os.Getenv("REDIS"))
+	app.Mailer = app.createMail()
+	go app.listenForMail()
 	go app.listenForShutdown()
 	app.serve()
+
+}
+
+func (app *Config) createMail() Mail {
+	return Mail{
+		Domain:      "localhost",
+		Host:        "localhost",
+		Port:        1025,
+		Encryption:  None,
+		FromName:    "Info",
+		FromAddress: "info@mycompany.com",
+		Wait:        app.Wait,
+		ErrorChan:   make(chan error),
+		MailerChan:  make(chan Message, 100),
+		DoneChan:    make(chan bool),
+	}
 
 }
 func (app *Config) serve() {
@@ -74,7 +90,7 @@ func initRedis() *redis.Pool {
 	return &redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("redis", os.Getenv("REDIS"))
+			return redis.Dial("tcp", ":6379")
 		},
 	}
 
@@ -135,6 +151,10 @@ func (app *Config) shutdown() {
 	app.InfoLog.Println("would run cleanup tasks...")
 	app.Wait.Wait()
 
-	app.InfoLog.Println("closing channels and shutting down app")
+	app.Mailer.DoneChan <- true
 
+	app.InfoLog.Println("closing channels and shutting down app")
+	close(app.Mailer.MailerChan)
+	close(app.Mailer.ErrorChan)
+	close(app.Mailer.DoneChan)
 }
