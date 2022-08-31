@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const pathToTemplate = "./cmd/web/templates"
+var pathToTemplate string = "./cmd/web/templates"
 
 type TemplateData struct {
 	StringMap     map[string]string
